@@ -34,8 +34,7 @@ class Talks(commands.Cog):
     async def teste(self,ctx):
         self.bot.buttons = Buttons(self.bot)
         res = await self.bot.buttons.send(ctx.message.channel, "here you go", buttons=[Button("myID", "Press me", emoji="😀")])
-        
-        # await ctx.send(f"{res.author.name} clicou no botãozin")
+
         print(res)
 
 
