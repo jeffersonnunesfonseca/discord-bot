@@ -1,5 +1,6 @@
 from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument
 from discord.ext import commands
+from discord_components import *
 
 
 class Manager(commands.Cog):
@@ -16,6 +17,7 @@ class Manager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        DiscordComponents(self.bot)
         print(f"EU SOU UM TESTE. ME CHAMO {self.bot.user}")
 
 
