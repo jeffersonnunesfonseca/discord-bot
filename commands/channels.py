@@ -1,7 +1,6 @@
 import os
 import discord
 from discord.ext import commands
-
 class Channels(commands.Cog):
     """Talks with user"""
 
@@ -25,10 +24,11 @@ class Channels(commands.Cog):
                 guild.default_role: discord.PermissionOverwrite(read_messages=False),
                 guild.me: discord.PermissionOverwrite(read_messages=True),
                 ctx.author: discord.PermissionOverwrite(read_messages=True), 
-            }
 
+            }
+            
             channel = await guild.create_text_channel(name, overwrites=overwrites)
-            print(channel)
+            await channel.send('New channel created.')
 
 
 
