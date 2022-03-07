@@ -15,28 +15,27 @@ class Roles(commands.Cog):
     async def add_role(self, ctx, role_name, username):
         if not utils.check_master_role_permission(ctx):
             await ctx.message.delete()
-            await ctx.send(f"{ctx.author.name}, você não tem permissão!")
-            return
-
-        role = get(ctx.guild.roles, name=role_name.upper())
-        if not role:
-            msg = f"cargo não encontrado, favor verificar novamente o cargo."
-            await ctx.send(msg)
-            return
-
-        user = None
-        for member in ctx.guild.members:
-            if username.lower() == member.name.lower():
-                user = member
-                break    
-
-        if user:
-            msg = f"Cargo **{role.name.upper()}** adicionado ao usuário **{member.name}**"
-            await member.add_roles(role)    
-            await ctx.send(msg)
+            await ctx.send(f"{ctx.author.name}, você não tem permissão!")            
         else:
-            msg = f"não foi possivel adicionar o cargo **{role.name.upper()}** ao usuário desejado, favor verificar o **NOME** do usuario"
-            await ctx.send(msg)
+            role = get(ctx.guild.roles, name=role_name.upper())
+            if not role:
+                msg = f"cargo não encontrado, favor verificar novamente o cargo."
+                await ctx.send(msg)
+                return
+
+            user = None
+            for member in ctx.guild.members:
+                if username.lower() == member.name.lower():
+                    user = member
+                    break    
+
+            if user:
+                msg = f"Cargo **{role.name.upper()}** adicionado ao usuário **{member.name}**"
+                await member.add_roles(role)    
+                await ctx.send(msg)
+            else:
+                msg = f"não foi possivel adicionar o cargo **{role.name.upper()}** ao usuário desejado, favor verificar o **NOME** do usuario"
+                await ctx.send(msg)
 
 
 def setup(bot):
