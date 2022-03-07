@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from discord.ext import commands, tasks
@@ -17,7 +18,7 @@ class Dates(commands.Cog):
     async def current_time(self):
         now = datetime.now().strftime("%d/%m/%Y às %H:%M:%S")
         msg = f"Horário atual - {now}"
-        channel_id = 949862745694687286
+        channel_id = int(os.getenv("GENERAL_CHANNEL_ID"))
         channel = self.bot.get_channel(channel_id)
         await channel.send(msg)
 

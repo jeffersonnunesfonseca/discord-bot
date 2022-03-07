@@ -12,7 +12,7 @@ class Channels(commands.Cog):
     async def create_private_channel(self, ctx, name):
         has_permission = False 
         for role in ctx.author.roles:
-            if int(os.getenv("ADM_ROLE_ID")) == role.id:
+            if int(os.getenv("COMANDO_ROLE_ID")) == role.id:
                 has_permission = True
                 break
         if not has_permission:

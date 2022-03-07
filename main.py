@@ -1,7 +1,10 @@
 import os
 from discord.ext import commands
+import discord
 
-bot = commands.Bot("!")
+intents = discord.Intents().all()
+
+bot = commands.Bot(command_prefix="!",intents=intents)
 
 
 def load_cogs(bot):

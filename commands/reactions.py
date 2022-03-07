@@ -12,7 +12,7 @@ class Reactions(commands.Cog):
     async def on_reaction_add(self, reaction, user):
         print(reaction.emoji)
         if reaction.emoji == "👍":
-            role = user.guild.get_role(int(os.getenv("ADM_ROLE_ID")))
+            role = user.guild.get_role(int(os.getenv("COMANDO_ROLE_ID")))
             await user.add_roles(role)
 
 def setup(bot):

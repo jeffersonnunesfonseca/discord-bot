@@ -46,7 +46,7 @@ async def on_message(message):
 async def on_reaction_add(reaction,user):
     print(reaction.emoji)
     if reaction.emoji == "👍":
-        role = user.guild.get_role(os.getenv("ADM_ROLE_ID"))
+        role = user.guild.get_role(os.getenv("COMANDO_ROLE_ID"))
         await user.add_roles(role)
 
 @bot.event
