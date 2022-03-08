@@ -1,3 +1,4 @@
+from multiprocessing.connection import wait
 import os
 import time
 
@@ -73,70 +74,39 @@ class Channels(commands.Cog):
 
 
             msg = await ctx.send(embed=embed, components = [[btn_accept,btn_reject]])
-            await self._btn_accept_interaction(ctx,msg,btn_accept,btn_reject)
+            await self._btn_interaction(ctx,msg,btn_accept,btn_reject)
 
-            # while True:
-            #     try:
-            #         interaction_accept_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_reject",timeout=60)
-            #         user_id = interaction_accept_btn.user.id
-            #         this_user_has_interation = False
 
-            #         if users_interation:
-            #             for user in users_interation:
-            #                 if user.id == user_id:
-            #                     this_user_has_interation = True
-            #                     break
-
-            #         if not this_user_has_interation:
-            #             count_click_btn_accept+=1
-                        
-            #             btn_accept.set_label(f"Entrar na fila [{count_click_btn_accept}/2]")
-            #             if count_click_btn_accept == 2:
-            #                 btn_accept.set_disabled(True)                        
-
-            #             await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
-            #             users_interation.append(interaction_accept_btn.user)
-            #         else:
-            #             await ctx.send(f"**{ctx.author.name}** você já esta participando de uma aposta.")
-            #             await interaction_accept_btn.respond(type = 7)
-
-            #     except TimeoutError as e:
-            #         await msg.delete()
-            #         await ctx.send(f"Aposta cancelada por falta de jogadores ... ")
-            #         break
-                    
-
-    async def _btn_accept_interaction(self,ctx, msg, btn_accept, btn_reject):
+    async def _btn_interaction(self,ctx, msg, btn_accept, btn_reject):
         """ cuida da interação com o botao de aceito """
-        _count_click_btn_accept = 0
         while True:
             try:
                 # this_user_has_interation = False
-                interaction_accept_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_accept",timeout=60)
-                # import ipdb; ipdb.set_trace()
+                interaction_accept_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_accept" or inter.custom_id == "btn_reject",timeout=60)
+
                 user_id = interaction_accept_btn.user.id
                 message_id = interaction_accept_btn.message.id
                 
                 print(f"clique {interaction_accept_btn.user.name} - {interaction_accept_btn.user.id}")               
                 print(f"message.id {message_id}")
 
-                
-                is_accepted,total = self._resolve_bets_accepted(message_id=message_id,user_id=user_id)
-                print(is_accepted)
-                print(total)
-                print(self._USERS_ACCEPT_INTERCTION)
-                if is_accepted:
-                    btn_accept.set_disabled(False)  # força disable False 
-                    if total == 2:
-                        btn_accept.set_disabled(True)  
-
-
-                    btn_accept.set_label(f"Entrar na fila [{total}/{self._LIMIT_USER_IN_BET}]")
-                    await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
-
+                if "sair" in interaction_accept_btn.component.label.lower():
+                    # TODO logica do botao sair ... 
+                    await ctx.send("clicou em sair - implementar regras ...")
                 else:
-                    # await ctx.send(f"**{ctx.author.name}** você já esta participando de uma aposta.")
-                    await interaction_accept_btn.respond(type = 7)
+                    await ctx.send("clicou em entrar")
+                    is_accepted,total = self._resolve_bets_accepted(message_id=message_id,user_id=user_id)
+                    if is_accepted:
+                        btn_accept.set_disabled(False)  # força disable False 
+                        if total == 2:
+                            btn_accept.set_disabled(True)  
+
+                        btn_accept.set_label(f"Entrar na fila [{total}/{self._LIMIT_USER_IN_BET}]")
+                        await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
+
+                    else:
+                        # await ctx.send(f"**{ctx.author.name}** você já esta participando de uma aposta.")
+                        await interaction_accept_btn.respond(type = 7)
 
             except TimeoutError as e:
                 print(f"TimeoutError {e}")
@@ -154,19 +124,54 @@ class Channels(commands.Cog):
             except Exception as e:
                 print(f"sem mensagem {e}")
                 break
-        
-        # self._USERS_ACCEPT_INTERCTION = [] 
-        # remove usuario de interação
-        # if self._USERS_ACCEPT_INTERCTION:
-        #     for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
-        #         if user_id in  inter["users_id"]:
-        #             self._USERS_ACCEPT_INTERCTION.pop(index)
-
-                    
 
 
+            # try:
+            #     # this_user_has_interation = False
+            #     interaction_accept_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_reject",timeout=60)
+            #     # import ipdb; ipdb.set_trace()
+            #     user_id = interaction_accept_btn.user.id
+            #     message_id = interaction_accept_btn.message.id
+                
+            #     print(f"clique {interaction_accept_btn.user.name} - {interaction_accept_btn.user.id}")               
+            #     print(f"message.id {message_id}")
+
+                
+            #     is_accepted,total = self._resolve_bets_accepted(message_id=message_id,user_id=user_id)
+            #     print(is_accepted)
+            #     print(total)
+            #     print(self._USERS_ACCEPT_INTERCTION)
+            #     if is_accepted:
+            #         btn_accept.set_disabled(False)  # força disable False 
+            #         if total == 2:
+            #             btn_accept.set_disabled(True)  
 
 
+            #         btn_accept.set_label(f"Entrar na fila [{total}/{self._LIMIT_USER_IN_BET}]")
+            #         await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
+
+            #     else:
+            #         # await ctx.send(f"**{ctx.author.name}** você já esta participando de uma aposta.")
+            #         await interaction_accept_btn.respond(type = 7)
+
+            # except TimeoutError as e:
+            #     print(f"TimeoutError {e}")
+            #     if self._USERS_ACCEPT_INTERCTION:
+            #         for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
+            #             if int(inter["message_id"]) == msg.id:
+            #                 self._USERS_ACCEPT_INTERCTION.pop(index)
+                
+            #     if msg:
+            #         await msg.delete()
+            #         await ctx.send(f"Aposta cancelada por falta de jogadores ... ")
+            # except HTTPException as e:
+            #     print(f"HTTPException {e}")
+
+            # except Exception as e:
+            #     print(f"sem mensagem {e}")
+            #     break
+
+    
     def _resolve_bets_accepted(self,**kwargs):     
         message_id = int(kwargs.get("message_id"))        
         user_id = int(kwargs.get("user_id"))
