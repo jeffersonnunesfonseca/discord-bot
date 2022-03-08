@@ -5,6 +5,7 @@ import discord
 
 from discord.ext import commands
 from discord_components import Button
+from discord.errors import HTTPException,NotFound
 from asyncio.exceptions import TimeoutError
 
 import utils
@@ -12,7 +13,9 @@ import utils
 
 class Channels(commands.Cog):
     """Talks with user"""
-
+    _USERS_ACCEPT_INTERCTION = [] # armazena estrutura com usuarios e interações para que seja validado
+    _LIMIT_USER_IN_BET = 2 # limite de usuario por aposta
+    
     def __init__(self, bot):
         self.bot = bot
 
@@ -42,8 +45,6 @@ class Channels(commands.Cog):
     # bot.command => commands.command
     @commands.command(name="fila", help="Cria uma fila. Args: tipo(emu, mob),tamanho(4x4,1x1..), valor")
     async def create_queue(self, ctx,type,size,price):
-        count_click_btn_accept = 0
-        users_interation = []
         if not utils.check_comando_role_permission(ctx):
             await ctx.message.delete()
             await ctx.send(f"{ctx.author.name}, você não tem permissão!")
@@ -67,61 +68,157 @@ class Channels(commands.Cog):
                 text="Feito por " + self.bot.user.name, icon_url=self.bot.user.avatar_url
             )
             
-            btn_accept =  Button(label = "Entrar na fila [0/2]", custom_id = "btn_accept",style=1,emoji="✅")
+            btn_accept =  Button(label = f"Entrar na fila [0/{self._LIMIT_USER_IN_BET}]", custom_id = "btn_accept",style=1,emoji="✅")
             btn_reject =  Button(label = "Sair da fila", custom_id = "btn_reject", style=4, emoji="❎")
 
 
             msg = await ctx.send(embed=embed, components = [[btn_accept,btn_reject]])
+            await self._btn_accept_interaction(ctx,msg,btn_accept,btn_reject)
 
-            while True:
-                try:
+            # while True:
+            #     try:
+            #         interaction_accept_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_reject",timeout=60)
+            #         user_id = interaction_accept_btn.user.id
+            #         this_user_has_interation = False
 
-                    interaction_accept_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_accept",timeout=60)
-                    user_id = interaction_accept_btn.user.id
-                    this_user_has_interation = False
+            #         if users_interation:
+            #             for user in users_interation:
+            #                 if user.id == user_id:
+            #                     this_user_has_interation = True
+            #                     break
 
-                    if users_interation:
-                        for user in users_interation:
-                            if user.id == user_id:
-                                this_user_has_interation = True
-                                break
-
-                    if not this_user_has_interation:
-                        count_click_btn_accept+=1
+            #         if not this_user_has_interation:
+            #             count_click_btn_accept+=1
                         
-                        btn_accept.set_label(f"Entrar na fila [{count_click_btn_accept}/2]")
-                        if count_click_btn_accept == 2:
-                            btn_accept.set_disabled(True)                        
+            #             btn_accept.set_label(f"Entrar na fila [{count_click_btn_accept}/2]")
+            #             if count_click_btn_accept == 2:
+            #                 btn_accept.set_disabled(True)                        
 
-                        await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
-                        users_interation.append(interaction_accept_btn.user)
-                    else:
-                        await ctx.send(f"**{ctx.author.name}** você já esta participando dessa aposta.")
-                        await interaction_accept_btn.respond(type = 7)
+            #             await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
+            #             users_interation.append(interaction_accept_btn.user)
+            #         else:
+            #             await ctx.send(f"**{ctx.author.name}** você já esta participando de uma aposta.")
+            #             await interaction_accept_btn.respond(type = 7)
 
-                except TimeoutError as e:
+            #     except TimeoutError as e:
+            #         await msg.delete()
+            #         await ctx.send(f"Aposta cancelada por falta de jogadores ... ")
+            #         break
+                    
+
+    async def _btn_accept_interaction(self,ctx, msg, btn_accept, btn_reject):
+        """ cuida da interação com o botao de aceito """
+        _count_click_btn_accept = 0
+        while True:
+            try:
+                # this_user_has_interation = False
+                interaction_accept_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_accept",timeout=60)
+                # import ipdb; ipdb.set_trace()
+                user_id = interaction_accept_btn.user.id
+                message_id = interaction_accept_btn.message.id
+                
+                print(f"clique {interaction_accept_btn.user.name} - {interaction_accept_btn.user.id}")               
+                print(f"message.id {message_id}")
+
+                
+                is_accepted,total = self._resolve_bets_accepted(message_id=message_id,user_id=user_id)
+                print(is_accepted)
+                print(total)
+                print(self._USERS_ACCEPT_INTERCTION)
+                if is_accepted:
+                    btn_accept.set_disabled(False)  # força disable False 
+                    if total == 2:
+                        btn_accept.set_disabled(True)  
+
+
+                    btn_accept.set_label(f"Entrar na fila [{total}/{self._LIMIT_USER_IN_BET}]")
+                    await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
+
+                else:
+                    # await ctx.send(f"**{ctx.author.name}** você já esta participando de uma aposta.")
+                    await interaction_accept_btn.respond(type = 7)
+
+            except TimeoutError as e:
+                print(f"TimeoutError {e}")
+                if self._USERS_ACCEPT_INTERCTION:
+                    for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
+                        if int(inter["message_id"]) == msg.id:
+                            self._USERS_ACCEPT_INTERCTION.pop(index)
+                
+                if msg:
                     await msg.delete()
                     await ctx.send(f"Aposta cancelada por falta de jogadores ... ")
-                    break
+            except HTTPException as e:
+                print(f"HTTPException {e}")
+
+            except Exception as e:
+                print(f"sem mensagem {e}")
+                break
+        
+        # self._USERS_ACCEPT_INTERCTION = [] 
+        # remove usuario de interação
+        # if self._USERS_ACCEPT_INTERCTION:
+        #     for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
+        #         if user_id in  inter["users_id"]:
+        #             self._USERS_ACCEPT_INTERCTION.pop(index)
+
                     
 
 
-    # async def button(ctx):
-    #     button1 = Button(label = "button1", custom_id = "button1")
-    #     button2 = Button(label = "button2", custom_id = "button2")
-    #     button3 = Button(label = "button3", custom_id = "button3")
-
-    #     button1disabled = Button(label = "button1", custom_id = "button1", disabled = True)
-    #     button2disabled = Button(label = "button2", custom_id = "button2", disabled = True)
-    #     button3disabled = Button(label = "button3", custom_id = "button3", disabled = True)
-
-    #     msg = await ctx.send("button", components = [button1, button2, button3])
-    #     interaction = await bot.wait_for("button_click", check = lambda inter: inter.custom_id == "button1")
-    #     await interaction.respond(type = 7, content = msg, components = [button1disabled, button2disabled, button3disabled])
-    #     await interaction.send(f"Disabled")
 
 
+    def _resolve_bets_accepted(self,**kwargs):     
+        message_id = int(kwargs.get("message_id"))        
+        user_id = int(kwargs.get("user_id"))
+
+        # verifica se o usuario ja esta em alguma interação
+        if not self._USERS_ACCEPT_INTERCTION:
+            print("[1] Interação NAO existe, adicionando o user")
+            interaction = {
+                "message_id": message_id,
+                "users_id":[user_id],
+                "total":1
+            }
+            self._USERS_ACCEPT_INTERCTION.append(interaction)
+
+            return True,1,
+
+        for inter in self._USERS_ACCEPT_INTERCTION:
+            if user_id in  inter["users_id"]:
+                print(f"[2] usuário ja esta em uma aposta {inter}")
+                return False,inter['total'],
+        
+        interaction_exists = False
+        total_users = 0
+
+        # verifica se ja existe a interação e se existir adiciona o usuario nela, se nao cria e adiciona usuario
+        for inter in self._USERS_ACCEPT_INTERCTION:
+            if int(inter["message_id"]) == message_id:
+                total_users = len(inter["users_id"])
+                if total_users >= self._LIMIT_USER_IN_BET:
+                    print(f"[3] Aposta já contem limite de usuarios {inter}")
+                    return False, total_users,
+                    
+                print("[4] Interação ja existe, adicionando o user")
+                inter["users_id"].append(user_id)
+                total_users = len(inter["users_id"])
+                inter["total"] = total_users
+                interaction_exists = True
+                break
+        
+        if not interaction_exists:
+            print("[5] Interação NAO existe, adicionando o user")
+            total_users = 1
+            interaction = {
+                "message_id": message_id,
+                "users_id":[user_id],
+                "total":total_users
+            }
+            self._USERS_ACCEPT_INTERCTION.append(interaction)
+
+        return True,total_users,
 
 
 def setup(bot):
     bot.add_cog(Channels(bot))
+    
