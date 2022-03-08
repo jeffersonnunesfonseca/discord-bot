@@ -18,7 +18,7 @@ class Manager(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         DiscordComponents(self.bot)
-        print(f"EU SOU UM TESTE. ME CHAMO {self.bot.user}")
+        print(f"Bot {self.bot.user} ON")
 
 
     @commands.Cog.listener()
