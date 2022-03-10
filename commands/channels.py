@@ -91,11 +91,15 @@ class Channels(commands.Cog):
                 print(f"message.id {message_id}")
 
                 if "sair" in interaction_accept_btn.component.label.lower():
-                    # TODO logica do botao sair ... 
-                    await ctx.send("clicou em sair - implementar regras ...")
+                    is_reject, total = self._reject_bet(message_id=message_id,user_id=user_id)
+                    if is_reject:
+                        btn_accept.set_disabled(False)  # força disable False 
+                        btn_accept.set_label(f"Entrar na fila [{total}/{self._LIMIT_USER_IN_BET}]")
+                        await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
+                    else:
+                        await interaction_accept_btn.respond(type = 7)
                 else:
-                    await ctx.send("clicou em entrar")
-                    is_accepted,total = self._resolve_bets_accepted(message_id=message_id,user_id=user_id)
+                    is_accepted,total = self._accept_bet(message_id=message_id,user_id=user_id)
                     if is_accepted:
                         btn_accept.set_disabled(False)  # força disable False 
                         if total == 2:
@@ -105,7 +109,6 @@ class Channels(commands.Cog):
                         await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
 
                     else:
-                        # await ctx.send(f"**{ctx.author.name}** você já esta participando de uma aposta.")
                         await interaction_accept_btn.respond(type = 7)
 
             except TimeoutError as e:
@@ -125,60 +128,13 @@ class Channels(commands.Cog):
                 print(f"sem mensagem {e}")
                 break
 
-
-            # try:
-            #     # this_user_has_interation = False
-            #     interaction_accept_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_reject",timeout=60)
-            #     # import ipdb; ipdb.set_trace()
-            #     user_id = interaction_accept_btn.user.id
-            #     message_id = interaction_accept_btn.message.id
-                
-            #     print(f"clique {interaction_accept_btn.user.name} - {interaction_accept_btn.user.id}")               
-            #     print(f"message.id {message_id}")
-
-                
-            #     is_accepted,total = self._resolve_bets_accepted(message_id=message_id,user_id=user_id)
-            #     print(is_accepted)
-            #     print(total)
-            #     print(self._USERS_ACCEPT_INTERCTION)
-            #     if is_accepted:
-            #         btn_accept.set_disabled(False)  # força disable False 
-            #         if total == 2:
-            #             btn_accept.set_disabled(True)  
-
-
-            #         btn_accept.set_label(f"Entrar na fila [{total}/{self._LIMIT_USER_IN_BET}]")
-            #         await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
-
-            #     else:
-            #         # await ctx.send(f"**{ctx.author.name}** você já esta participando de uma aposta.")
-            #         await interaction_accept_btn.respond(type = 7)
-
-            # except TimeoutError as e:
-            #     print(f"TimeoutError {e}")
-            #     if self._USERS_ACCEPT_INTERCTION:
-            #         for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
-            #             if int(inter["message_id"]) == msg.id:
-            #                 self._USERS_ACCEPT_INTERCTION.pop(index)
-                
-            #     if msg:
-            #         await msg.delete()
-            #         await ctx.send(f"Aposta cancelada por falta de jogadores ... ")
-            # except HTTPException as e:
-            #     print(f"HTTPException {e}")
-
-            # except Exception as e:
-            #     print(f"sem mensagem {e}")
-            #     break
-
     
-    def _resolve_bets_accepted(self,**kwargs):     
+    def _accept_bet(self,**kwargs):     
         message_id = int(kwargs.get("message_id"))        
         user_id = int(kwargs.get("user_id"))
 
         # verifica se o usuario ja esta em alguma interação
         if not self._USERS_ACCEPT_INTERCTION:
-            print("[1] Interação NAO existe, adicionando o user")
             interaction = {
                 "message_id": message_id,
                 "users_id":[user_id],
@@ -190,7 +146,6 @@ class Channels(commands.Cog):
 
         for inter in self._USERS_ACCEPT_INTERCTION:
             if user_id in  inter["users_id"]:
-                print(f"[2] usuário ja esta em uma aposta {inter}")
                 return False,inter['total'],
         
         interaction_exists = False
@@ -201,10 +156,8 @@ class Channels(commands.Cog):
             if int(inter["message_id"]) == message_id:
                 total_users = len(inter["users_id"])
                 if total_users >= self._LIMIT_USER_IN_BET:
-                    print(f"[3] Aposta já contem limite de usuarios {inter}")
                     return False, total_users,
                     
-                print("[4] Interação ja existe, adicionando o user")
                 inter["users_id"].append(user_id)
                 total_users = len(inter["users_id"])
                 inter["total"] = total_users
@@ -212,7 +165,6 @@ class Channels(commands.Cog):
                 break
         
         if not interaction_exists:
-            print("[5] Interação NAO existe, adicionando o user")
             total_users = 1
             interaction = {
                 "message_id": message_id,
@@ -223,6 +175,24 @@ class Channels(commands.Cog):
 
         return True,total_users,
 
+    def _reject_bet(self,**kwargs): 
+
+        message_id = int(kwargs.get("message_id"))        
+        user_id = int(kwargs.get("user_id"))
+
+        # verifica se existe alguma interação
+        if not self._USERS_ACCEPT_INTERCTION:
+            return False, 0,
+
+        # verifica se existe mensagem com o id da interação e se o usuario que esta clicando esta nela
+        for inter in self._USERS_ACCEPT_INTERCTION:
+            if int(inter["message_id"]) == message_id and user_id in inter["users_id"]:
+                index = inter["users_id"].index(user_id)
+                inter["users_id"].pop(index)
+                total_users = len(inter["users_id"])
+                return True, total_users,
+
+        return False, 0,
 
 def setup(bot):
     bot.add_cog(Channels(bot))
