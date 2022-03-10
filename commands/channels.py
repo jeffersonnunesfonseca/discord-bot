@@ -73,61 +73,99 @@ class Channels(commands.Cog):
             btn_reject =  Button(label = "Sair da fila", custom_id = "btn_reject", style=4, emoji="❎")
 
 
-            msg = await ctx.send(embed=embed, components = [[btn_accept,btn_reject]])
-            await self._btn_interaction(ctx,msg,btn_accept,btn_reject)
+            msg = await ctx.send(embed=embed,components = [[btn_accept,btn_reject]])
+            await self._btn_interaction(ctx,msg,btn_accept,btn_reject,embed)
 
 
-    async def _btn_interaction(self,ctx, msg, btn_accept, btn_reject):
+    async def _btn_interaction(self,ctx, msg, btn_accept, btn_reject, embed):
         """ cuida da interação com o botao de aceito """
         while True:
             try:
-                # this_user_has_interation = False
                 interaction_accept_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_accept" or inter.custom_id == "btn_reject",timeout=60)
 
                 user_id = interaction_accept_btn.user.id
                 message_id = interaction_accept_btn.message.id
-                
-                print(f"clique {interaction_accept_btn.user.name} - {interaction_accept_btn.user.id}")               
-                print(f"message.id {message_id}")
+                has_id = [x for x in embed.fields if x.name== "#ID"]
+                if not has_id:
+                    embed.add_field(name="#ID", value=message_id, inline=False)
+                    await msg.edit(embed=embed)
+
+                print(f"[clique {interaction_accept_btn.user.name} - {interaction_accept_btn.user.id}] [message.id {message_id}]")               
 
                 if "sair" in interaction_accept_btn.component.label.lower():
                     is_reject, total = self._reject_bet(message_id=message_id,user_id=user_id)
                     if is_reject:
                         btn_accept.set_disabled(False)  # força disable False 
                         btn_accept.set_label(f"Entrar na fila [{total}/{self._LIMIT_USER_IN_BET}]")
+                        
                         await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
+                        index_to_remove = None
+                        for index,x in enumerate(embed.fields):
+                            if x.value == interaction_accept_btn.user.name:
+                                index_to_remove=index
+                                break
+                        
+                        if index_to_remove:
+                            embed.remove_field(index=4)
+                            await msg.edit(embed=embed)
+
+
                     else:
                         await interaction_accept_btn.respond(type = 7)
                 else:
-                    is_accepted,total = self._accept_bet(message_id=message_id,user_id=user_id)
+                    is_accepted, total = self._accept_bet(message_id=message_id,user_id=user_id)
                     if is_accepted:
+                        embed.add_field(name="Participante:", value=interaction_accept_btn.user.name, inline=True)
+                        await msg.edit(embed=embed)
                         btn_accept.set_disabled(False)  # força disable False 
                         if total == 2:
-                            btn_accept.set_disabled(True)  
+                            btn_accept.set_disabled(True)
+                            # aqui criar um canal
+                            guild = ctx.guild
+                            user_1 = None
+                            user_2 = None
+                            for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
+                                if int(inter["message_id"]) == message_id:
+                                    user_1 = ctx.guild.get_member(inter["users_id"][0])
+                                    user_2 = ctx.guild.get_member(inter["users_id"][1])
+                                    self._USERS_ACCEPT_INTERCTION.pop(index)
+                                    break
+
+                            channel_bet_name = f"aposta-{user_1.name}-x-{user_2.name}".lower()
+                            admin_role = [x for x in guild.roles if x.name.lower() == 'comando']
+                            overwrites = {
+                                guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                                guild.me: discord.PermissionOverwrite(read_messages=True),
+                                ctx.author: discord.PermissionOverwrite(read_messages=True),
+                                user_1: discord.PermissionOverwrite(read_messages=True),
+                                user_2: discord.PermissionOverwrite(read_messages=True)
+                            }                    
+                            await guild.create_text_channel(channel_bet_name, overwrites=overwrites)
+                            time.sleep(1)
+                            await msg.delete()        
+                            break
 
                         btn_accept.set_label(f"Entrar na fila [{total}/{self._LIMIT_USER_IN_BET}]")
-                        await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
-
+                        await interaction_accept_btn.respond(type=7, components = [[btn_accept, btn_reject]])
                     else:
-                        await interaction_accept_btn.respond(type = 7)
+                        await interaction_accept_btn.respond(type=7)
 
             except TimeoutError as e:
                 print(f"TimeoutError {e}")
                 if self._USERS_ACCEPT_INTERCTION:
                     for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
                         if int(inter["message_id"]) == msg.id:
-                            self._USERS_ACCEPT_INTERCTION.pop(index)
+                            self._USERS_ACCEPT_INTERCTION.pop(index)                
                 
-                if msg:
-                    await msg.delete()
-                    await ctx.send(f"Aposta cancelada por falta de jogadores ... ")
+                await msg.delete()
+                await ctx.send(f"Aposta cancelada por falta de jogadores ... {msg.id}")
+
             except HTTPException as e:
                 print(f"HTTPException {e}")
 
             except Exception as e:
                 print(f"sem mensagem {e}")
                 break
-
     
     def _accept_bet(self,**kwargs):     
         message_id = int(kwargs.get("message_id"))        
@@ -194,6 +232,7 @@ class Channels(commands.Cog):
 
         return False, 0,
 
+        
 def setup(bot):
     bot.add_cog(Channels(bot))
     
