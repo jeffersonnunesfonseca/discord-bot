@@ -27,6 +27,7 @@ CONFIGURAÇÃO DO SERVIDOR
 
 
 
-
+# bot de boas vindas
+https://mee6.xyz/dashboard/949862745694687283/welcome
 
 
