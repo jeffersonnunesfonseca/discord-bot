@@ -1,4 +1,3 @@
-from multiprocessing.connection import wait
 import os
 import time
 
@@ -6,7 +5,7 @@ import discord
 
 from discord.ext import commands
 from discord_components import Button
-from discord.errors import HTTPException,NotFound
+from discord.errors import HTTPException
 from asyncio.exceptions import TimeoutError
 
 import utils
@@ -19,29 +18,6 @@ class Channels(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
-
-    # bot.command => commands.command
-    @commands.command(name="create-private-channel", help="Cria um canal privado (nome)")
-    async def create_private_channel(self, ctx, name):
-        has_permission = False 
-        for role in ctx.author.roles:
-            if int(os.getenv("COMANDO_ROLE_ID")) == role.id:
-                has_permission = True
-                break
-        if not has_permission:
-            await ctx.message.delete()
-            await ctx.send(f"{ctx.author.name}, você não tem permissão!")
-        else:
-            guild = ctx.guild
-            overwrites = {
-                guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                guild.me: discord.PermissionOverwrite(read_messages=True),
-                ctx.author: discord.PermissionOverwrite(read_messages=True), 
-
-            }
-            
-            channel = await guild.create_text_channel(name, overwrites=overwrites)
-            await channel.send('New channel created.')
 
     # bot.command => commands.command
     @commands.command(name="fila", help="Cria uma fila. Args: tipo(emu, mob),tamanho(4x4,1x1..), valor")
@@ -75,7 +51,6 @@ class Channels(commands.Cog):
 
             msg = await ctx.send(embed=embed,components = [[btn_accept,btn_reject]])
             await self._btn_interaction(ctx,msg,btn_accept,btn_reject,embed)
-
 
     async def _btn_interaction(self,ctx, msg, btn_accept, btn_reject, embed):
         """ cuida da interação com o botao de aceito """
@@ -124,6 +99,7 @@ class Channels(commands.Cog):
                             guild = ctx.guild
                             user_1 = None
                             user_2 = None
+                            # pega dados dos usuarios que estavam na fila
                             for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
                                 if int(inter["message_id"]) == message_id:
                                     user_1 = ctx.guild.get_member(inter["users_id"][0])
@@ -140,7 +116,9 @@ class Channels(commands.Cog):
                                 user_1: discord.PermissionOverwrite(read_messages=True),
                                 user_2: discord.PermissionOverwrite(read_messages=True)
                             }                    
-                            await guild.create_text_channel(channel_bet_name, overwrites=overwrites)
+                            channel = await guild.create_text_channel(channel_bet_name, overwrites=overwrites)
+                            await channel.send('Aqui mensagem com pix ...')
+
                             time.sleep(1)
                             await msg.delete()        
                             break
