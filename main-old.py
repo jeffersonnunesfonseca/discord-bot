@@ -12,7 +12,7 @@ bot = commands.Bot("!")
 
 
 forbidden_word = [
-    "porra",
+    "po rra",
     "cu",
     "fdp"
 ]
