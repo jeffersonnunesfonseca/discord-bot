@@ -6,7 +6,7 @@ permissions= readonly, all
 """
 
 CATEGORIES_WITH_CHANNELS = {
-    'Teste readonly1 Entrada🏁':[
+    '🏁Entrada🏁':[
         {'name':'boas-vindas','type':0,'permission':'readonly'},
         {'name':'sistema-de-apostas','type':0,'permission':'readonly'},
         {'name':'regras','type':0,'permission':'readonly'},
@@ -74,7 +74,7 @@ CATEGORIES_WITH_CHANNELS = {
 
 ROLES = [
     {
-        'name':'COMANDO TESTE1',
+        'name':'COMANDO',
         'color':discord.Colour.dark_red(),
         'permissions':discord.Permissions(
             read_messages=True,
@@ -102,7 +102,7 @@ ROLES = [
         )
     },
     {
-        "name":"MASTER TESTE1",
+        "name":"MASTER",
         'color':discord.Colour.dark_gold(),
         "permissions":discord.Permissions(administrator=True)
     }
