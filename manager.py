@@ -50,19 +50,5 @@ class Manager(commands.Cog):
         else:
             raise error
 
-    # @client.listen('on_button_press')
-    # async def on_button(btn: PressedButton, msg: ResponseMsg):
-    #     await btn.respond("You pressed " + btn.content)
-
-    # @commands.Cog.listener()
-    # async def on_button_press(self, btn, message):
-    #     msg = f"{btn.member.name} me clicou "
-    #     await message.respond(msg)
-
-    # await btn.respond("You pressed " + btn.content)
-    # @commands.Cog.listener()
-    # async def on_disconnect(self):
-    #     print("Bot off.")
-
 def setup(bot):
     bot.add_cog(Manager(bot))
