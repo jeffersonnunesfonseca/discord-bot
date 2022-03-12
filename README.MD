@@ -30,4 +30,13 @@ para adicionar o bot é necessario ir em escopo, selecionar bot e dar a permissa
 # bot de boas vindas
 https://mee6.xyz/dashboard/949862745694687283/welcome
 
+# heroku comands
+https://dashboard.heroku.com/apps/jeflizbot/deploy/heroku-git
+git push heroku master # faz o deploy
+heroku logs --tail # ve o log do heroku
+
+
+
+
+
 
