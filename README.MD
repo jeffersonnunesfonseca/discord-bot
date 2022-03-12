@@ -25,7 +25,7 @@ CONFIGURAÇÃO DO SERVIDOR
 - No painel da API (https://discord.com/developers/applications/949871217916121139)
     - durante a configuração do bot no painvel de desenvolvedor, devemos habilitar as opcões de Intents para que o bot possa verificar os membros da guild (server)
 
-
+para adicionar o bot é necessario ir em escopo, selecionar bot e dar a permissao, com isso sera gerado uma url, basta pegar essa url e jogar no browser, ela vai amarrar o bot ao servidor
 
 # bot de boas vindas
 https://mee6.xyz/dashboard/949862745694687283/welcome
