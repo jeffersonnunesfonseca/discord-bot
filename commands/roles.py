@@ -11,7 +11,7 @@ class Roles(commands.Cog):
         self.bot = bot
 
     # bot.command => commands.command
-    @commands.command(name="addcargo", help="Adiciona cargo a uma pessoa. Args:user nome_cargo, nome do usuario")
+    @commands.command(name="addcargo", help="Add cargo a user.Ex:!addcargo comando nuneszada")
     async def add_role(self, ctx, role_name, username):
         if not utils.check_master_role_permission(ctx):
             await ctx.message.delete()
