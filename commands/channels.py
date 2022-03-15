@@ -120,7 +120,7 @@ class Channels(commands.Cog):
                             self._clear_queue_by_message_id(msg.id)
 
                             await msg.delete()        
-                            await self._btn_close_channel_interaction(btn_remove_channel)
+                            # await self._btn_close_channel_interaction(btn_remove_channel)
 
                             break
 
@@ -218,9 +218,11 @@ class Channels(commands.Cog):
     async def _btn_close_channel_interaction(self,btn):
         while True:
             interaction_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_remove_channel" ,timeout=60)
+
             if utils.check_comando_role_permission(interaction_btn):
                 await interaction_btn.respond(type=7)
                 await interaction_btn.channel.delete()
+                break
             else:
                 await interaction_btn.channel.send(f"{interaction_btn.author.name}, você não tem permissão para fechar o canal!")
                 await interaction_btn.respond(type=7)
