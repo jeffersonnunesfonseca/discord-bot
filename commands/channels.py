@@ -115,7 +115,7 @@ class Channels(commands.Cog):
                             channel = await guild.create_text_channel(channel_bet_name, overwrites=overwrites)
                             await channel.send(embed=utils.embed_rules_message(ctx,self.bot))
                             btn_remove_channel =  Button(label = "Remover canal", custom_id = "btn_remove_channel", style=4, emoji="❎")
-                            await channel.send(components=[btn_remove_channel])
+                            # await channel.send(components=[btn_remove_channel])
 
                             self._clear_queue_by_message_id(msg.id)
 
