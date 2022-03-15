@@ -24,7 +24,6 @@ class Configurations(commands.Cog):
                     await ctx.guild.create_role(name=role['name'],permissions=role['permissions'],color=role['color'])
 
             # cria canais se nao existir
-
             current_categories = [x.name.upper() for x in ctx.guild.categories]
             for category, values in CATEGORIES_WITH_CHANNELS.items():
                 if not category.upper() in current_categories:
@@ -37,7 +36,10 @@ class Configurations(commands.Cog):
                                 overwrites_read_only = {
                                     ctx.guild.default_role: discord.PermissionOverwrite(read_message_history=True,send_messages=False),
                                 }
-                                await ctx.guild.create_text_channel(str(ch['name']), category=new_category,overwrites=overwrites_read_only)
+                                channel = await ctx.guild.create_text_channel(str(ch['name']), category=new_category,overwrites=overwrites_read_only)
+
+                                if str(ch['name']) == "regras":
+                                    await channel.send(embed=utils.embed_rules_message(ctx,self.bot))
                             else:
                                 await ctx.guild.create_text_channel(str(ch['name']), category=new_category)
 

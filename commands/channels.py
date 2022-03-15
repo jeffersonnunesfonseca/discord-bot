@@ -8,6 +8,7 @@ from discord.errors import HTTPException
 from asyncio.exceptions import TimeoutError
 
 import utils
+from config import MSG_RULES
 
 
 class Channels(commands.Cog):
@@ -47,7 +48,6 @@ class Channels(commands.Cog):
             btn_accept =  Button(label = f"Entrar na fila [0/{self._LIMIT_USER_IN_BET}]", custom_id = "btn_accept",style=1,emoji="✅")
             btn_reject =  Button(label = "Sair da fila", custom_id = "btn_reject", style=4, emoji="❎")
 
-
             msg = await ctx.send(embed=embed,components = [[btn_accept,btn_reject]])
             await self._btn_interaction(ctx,msg,btn_accept,btn_reject,embed)
 
@@ -59,10 +59,6 @@ class Channels(commands.Cog):
 
                 user_id = interaction_accept_btn.user.id
                 message_id = interaction_accept_btn.message.id
-                has_id = [x for x in embed.fields if x.name== "#ID"]
-                if not has_id:
-                    embed.add_field(name="#ID", value=message_id, inline=False)
-                    await msg.edit(embed=embed)
 
                 print(f"[clique {interaction_accept_btn.user.name} - {interaction_accept_btn.user.id}] [message.id {message_id}]")               
 
@@ -83,31 +79,32 @@ class Channels(commands.Cog):
                             embed.remove_field(index=4)
                             await msg.edit(embed=embed)
 
-
                     else:
                         await interaction_accept_btn.respond(type = 7)
                 else:
                     is_accepted, total = self._accept_bet(message_id=message_id,user_id=user_id)
                     if is_accepted:
-                        embed.add_field(name="Participante:", value=interaction_accept_btn.user.name, inline=True)
+
+                        embed.add_field(name="Participante:", value=interaction_accept_btn.user.mention, inline=True)
                         await msg.edit(embed=embed)
-                        btn_accept.set_disabled(False)  # força disable False 
-                        if total == 2:
+                        if total < 2:
+                            btn_accept.set_disabled(False)
+                        else:
                             btn_accept.set_disabled(True)
+
                             # aqui criar um canal
                             guild = ctx.guild
                             user_1 = None
                             user_2 = None
-                            # pega dados dos usuarios que estavam na fila
-                            for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
-                                if int(inter["message_id"]) == message_id:
-                                    user_1 = ctx.guild.get_member(inter["users_id"][0])
-                                    user_2 = ctx.guild.get_member(inter["users_id"][1])
-                                    self._USERS_ACCEPT_INTERCTION.pop(index)
-                                    break
 
+                            # pega dados dos usuarios que estavam na fila
+                            users = [users['users_id'] for users in self._USERS_ACCEPT_INTERCTION if users['message_id'] == interaction_accept_btn.message.id ]
+                            user_id_1, user_id_2 = tuple(users[0])
+
+                            user_1 = ctx.guild.get_member(user_id_1)
+                            user_2 = ctx.guild.get_member(user_id_2)
+                        
                             channel_bet_name = f"aposta-{user_1.name}-x-{user_2.name}".lower()
-                            admin_role = [x for x in guild.roles if x.name.lower() == 'comando']
                             overwrites = {
                                 guild.default_role: discord.PermissionOverwrite(read_messages=False),
                                 guild.me: discord.PermissionOverwrite(read_messages=True),
@@ -116,26 +113,29 @@ class Channels(commands.Cog):
                                 user_2: discord.PermissionOverwrite(read_messages=True)
                             }                    
                             channel = await guild.create_text_channel(channel_bet_name, overwrites=overwrites)
-                            await channel.send('Aqui mensagem com pix ...')
+                            await channel.send(embed=utils.embed_rules_message(ctx,self.bot))
+                            btn_remove_channel =  Button(label = "Remover canal", custom_id = "btn_remove_channel", style=4, emoji="❎")
+                            await channel.send(components=[btn_remove_channel])
 
-                            time.sleep(1)
+                            self._clear_queue_by_message_id(msg.id)
+
                             await msg.delete()        
+                            await self._btn_close_channel_interaction(btn_remove_channel)
+
                             break
 
                         btn_accept.set_label(f"Entrar na fila [{total}/{self._LIMIT_USER_IN_BET}]")
                         await interaction_accept_btn.respond(type=7, components = [[btn_accept, btn_reject]])
+                        
                     else:
                         await interaction_accept_btn.respond(type=7)
 
             except TimeoutError as e:
                 print(f"TimeoutError {e}")
-                if self._USERS_ACCEPT_INTERCTION:
-                    for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
-                        if int(inter["message_id"]) == msg.id:
-                            self._USERS_ACCEPT_INTERCTION.pop(index)                
+                self._clear_queue_by_message_id(msg.id)
                 
                 await msg.delete()
-                await ctx.send(f"Aposta cancelada por falta de jogadores ... {msg.id}")
+                await ctx.send(f"Aposta cancelada por falta de jogadores ...")
 
             except HTTPException as e:
                 print(f"HTTPException {e}")
@@ -209,7 +209,25 @@ class Channels(commands.Cog):
 
         return False, 0,
 
-        
+    def _clear_queue_by_message_id(self,message_id):
+        if self._USERS_ACCEPT_INTERCTION:
+            for index, inter in enumerate(self._USERS_ACCEPT_INTERCTION):
+                if int(inter["message_id"]) == message_id:
+                    self._USERS_ACCEPT_INTERCTION.pop(index)    
+    
+    async def _btn_close_channel_interaction(self,btn):
+        while True:
+            interaction_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_remove_channel" ,timeout=60)
+
+            if utils.check_comando_role_permission(interaction_btn):
+                await interaction_btn.respond(type=7)
+                await interaction_btn.channel.delete()
+                break
+            else:
+                await interaction_btn.channel.send(f"{interaction_btn.author.name}, você não tem permissão para fechar o canal!")
+                await interaction_btn.respond(type=7)
+
+    
 def setup(bot):
     bot.add_cog(Channels(bot))
     
