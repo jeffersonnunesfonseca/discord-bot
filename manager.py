@@ -1,6 +1,6 @@
 from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument
 from discord.ext import commands
-from discord_components import *
+# from discord_components import *
 
 class Manager(commands.Cog):
     """Manage the bot"""
@@ -16,7 +16,7 @@ class Manager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        DiscordComponents(self.bot)
+        # DiscordComponents(self.bot)
         print(f"Bot {self.bot.user} ON")
 
     @commands.Cog.listener()

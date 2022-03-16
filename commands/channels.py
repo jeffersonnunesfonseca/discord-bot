@@ -1,14 +1,27 @@
 import time
 
 import discord
-
+from discord.ui import Button 
 from discord.ext import commands
-from discord_components import Button
+# from discord_components import Button
 from discord.errors import HTTPException
 from asyncio.exceptions import TimeoutError
 
 import utils
 from config import MSG_RULES
+
+class BtnAcceptBet(discord.ui.View):
+    
+    @discord.ui.button(label="0", style=discord.ButtonStyle.red)
+    async def count(self, button: discord.ui.Button, interaction: discord.Interaction):
+        number = int(button.label) if button.label else 0
+        if number >= 4:
+            button.style = discord.ButtonStyle.green
+            button.disabled = True
+        button.label = str(number + 1)
+
+        # Make sure to update the message with our updated selves
+        await interaction.response.edit_message(view=self)
 
 
 class Channels(commands.Cog):
@@ -18,6 +31,11 @@ class Channels(commands.Cog):
     
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.command(name="testezada")
+    async def testezada(self, ctx):
+        btn = BtnAcceptBet()
+        await ctx.send("Press!", view=btn)
 
     # bot.command => commands.command
     @commands.command(name="fila", help="Cria uma fila. Args: tipo(emu, mob),tamanho(4x4,1x1..), valor")
@@ -34,17 +52,16 @@ class Channels(commands.Cog):
             )
 
             embed.set_author(
-                name=self.bot.user.name, icon_url=self.bot.user.avatar_url
+                name=self.bot.user.name, icon_url=self.bot.user.avatar.url
             )
 
             embed.add_field(name="Tipo de jogo", value=type, inline=False)
             embed.add_field(name="Formato", value=size, inline=False)
             embed.add_field(name="R$ Valor da aposta", value=price, inline=False)
-
             embed.set_footer(
-                text="Feito por " + self.bot.user.name, icon_url=self.bot.user.avatar_url
+                text="Feito por " + self.bot.user.name, icon_url=self.bot.user.avatar.url
             )
-            
+
             btn_accept =  Button(label = f"Entrar na fila [0/{self._LIMIT_USER_IN_BET}]", custom_id = "btn_accept",style=1,emoji="✅")
             btn_reject =  Button(label = "Sair da fila", custom_id = "btn_reject", style=4, emoji="❎")
 
@@ -226,6 +243,7 @@ class Channels(commands.Cog):
             else:
                 await interaction_btn.channel.send(f"{interaction_btn.author.name}, você não tem permissão para fechar o canal!")
                 await interaction_btn.respond(type=7)
+
 
     
 def setup(bot):
