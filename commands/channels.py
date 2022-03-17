@@ -11,9 +11,20 @@ import utils
 from config import MSG_RULES
 
 class BtnAcceptBet(discord.ui.View):
-    
-    @discord.ui.button(label="0", style=discord.ButtonStyle.red)
+
+    @discord.ui.button(label="0",custom_id='1',style=discord.ButtonStyle.green)
     async def count(self, button: discord.ui.Button, interaction: discord.Interaction):
+        number = int(button.label) if button.label else 0
+        if number >= 4:
+            button.style = discord.ButtonStyle.red
+            button.disabled = True
+        button.label = str(number + 1)
+
+        # Make sure to update the message with our updated selves
+        await interaction.response.edit_message(view=self)
+
+    @discord.ui.button(label="0",custom_id='2',style=discord.ButtonStyle.red)
+    async def count2(self, button: discord.ui.Button, interaction: discord.Interaction):
         number = int(button.label) if button.label else 0
         if number >= 4:
             button.style = discord.ButtonStyle.green
@@ -62,11 +73,19 @@ class Channels(commands.Cog):
                 text="Feito por " + self.bot.user.name, icon_url=self.bot.user.avatar.url
             )
 
-            btn_accept =  Button(label = f"Entrar na fila [0/{self._LIMIT_USER_IN_BET}]", custom_id = "btn_accept",style=1,emoji="✅")
-            btn_reject =  Button(label = "Sair da fila", custom_id = "btn_reject", style=4, emoji="❎")
+            # btn_accept =  Button(label = f"Entrar na fila [0/{self._LIMIT_USER_IN_BET}]", custom_id = "btn_accept",style=1,emoji="✅")
+            # btn_reject =  Button(label = "Sair da fila", custom_id = "btn_reject", style=4, emoji="❎")
 
-            msg = await ctx.send(embed=embed,components = [[btn_accept,btn_reject]])
-            await self._btn_interaction(ctx,msg,btn_accept,btn_reject,embed)
+            # self.bot.add_view(BtnAcceptBet(),message_id=msg.id)
+            # buttons = {
+            #     'view':[BtnAcceptBet()],
+
+            # }
+            msg = await ctx.send(embed=embed,view=BtnAcceptBet())
+            
+            # self.bot.add_view(BtnAcceptBet(),message_id=msg.id)
+            # msg = await ctx.send(embed=embed,components = [[btn_accept,btn_reject]])
+            # await self._btn_interaction(ctx,msg,btn_accept,btn_reject,embed)
 
     async def _btn_interaction(self,ctx, msg, btn_accept, btn_reject, embed):
         """ cuida da interação com o botao de aceito """
