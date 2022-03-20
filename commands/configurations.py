@@ -14,8 +14,7 @@ class Configurations(commands.Cog):
 
     @commands.command(name="up_server_configuration", help="Sobe configurações iniciais do servidor, canais, cargos ...")
     async def up_default_channels(self,ctx):
-
-        if utils.check_master_role_permission(ctx):            
+        if utils.check_master_role_permission(ctx.guild.owner_id,ctx.author.id,ctx.author.roles):          
             # create roles
             current_roles = [x.name.upper() for x in ctx.guild.roles]
             for role in ROLES:
@@ -47,7 +46,6 @@ class Configurations(commands.Cog):
                             await ctx.guild.create_voice_channel(str(ch['name']), category=new_category,user_limit=int(ch['user_limit']))
             
         else:
-            await ctx.message.delete()
             await ctx.send(f"{ctx.author.name}, você não tem permissão!")    
 
 def setup(bot):

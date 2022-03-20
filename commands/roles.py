@@ -13,8 +13,7 @@ class Roles(commands.Cog):
     # bot.command => commands.command
     @commands.command(name="addcargo", help="Add cargo a user.Ex:!addcargo comando nuneszada")
     async def add_role(self, ctx, role_name, username):
-        if not utils.check_master_role_permission(ctx):
-            await ctx.message.delete()
+        if not utils.check_master_role_permission(ctx.guild.owner_id,ctx.author.id,ctx.author.roles):
             await ctx.send(f"{ctx.author.name}, você não tem permissão!")            
         else:
             role = get(ctx.guild.roles, name=role_name.upper())
@@ -36,7 +35,6 @@ class Roles(commands.Cog):
             else:
                 msg = f"não foi possivel adicionar o cargo **{role.name.upper()}** ao usuário desejado, favor verificar o **NOME** do usuario"
                 await ctx.send(msg)
-
-
+    
 def setup(bot):
     bot.add_cog(Roles(bot))
