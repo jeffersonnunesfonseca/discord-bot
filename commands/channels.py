@@ -255,7 +255,7 @@ class Channels(commands.Cog):
 
             msg = await ctx.send('criando fila ...')
             view = BtnsQueue()
-            view.timeout = 10
+            view.timeout = 60
             view.bot = self.bot
             view.original_msg = msg
             view.ctx = ctx
