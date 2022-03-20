@@ -43,6 +43,7 @@ class BtnsQueue(discord.ui.View):
         user_id = interaction.user.id
         message_id = interaction.message.id
         is_accepted, total = self._handler_accept_bet(message_id=message_id,user_id=user_id)
+        is_delete_message = False
 
         print("#################### CLICK BTN ACCEPT ##########################")
         print(f"author {author}")
@@ -63,13 +64,18 @@ class BtnsQueue(discord.ui.View):
                 button.disabled = True
                 overwrites,channel_bet_name = self._handler_rules_private_chat(author,guild,message_id)
                 channel = await guild.create_text_channel(channel_bet_name, overwrites=overwrites)
+                is_delete_message = True
 
                 view_close_channel = BtnClosePrivateChannel()
                 view_close_channel.message_id = message_id
                 await channel.send(embed=utils.embed_rules_message(interaction,self.bot),view=view_close_channel)
+        try:
+            await interaction.response.edit_message(embed=embed, view=self)
+            if is_delete_message:
+                await self.original_msg.delete()
 
-        await interaction.response.edit_message(embed=embed, view=self)
-
+        except discord.errors.NotFound as ex:
+            print(f"[BtnAcceptBet] Mensagem não existe mais {ex}")
 
     @discord.ui.button(label="Sair da fila",custom_id='btn_reject',style=discord.ButtonStyle.red)
     async def BtnRejectBet(self, button: discord.ui.Button, interaction: discord.Interaction):
@@ -78,7 +84,6 @@ class BtnsQueue(discord.ui.View):
         user_id = interaction.user.id
         message_id = interaction.message.id
         
-
         is_reject, total = self._handler_reject_bet(message_id=message_id,user_id=user_id)
         embed = interaction.message.embeds[0]
 
@@ -97,10 +102,15 @@ class BtnsQueue(discord.ui.View):
 
         await interaction.response.edit_message(embed=embed, view=self)
 
+
     async def on_timeout(self):
-        _clear_queue_by_message_id(self.original_msg.id)
-        await self.original_msg.delete()
-        await self.ctx.send(f"Aposta cancelada por falta de jogadores ...")
+        try:
+            await self.original_msg.delete()
+            await self.ctx.send(f"Aposta cancelada por falta de jogadores ...")
+            _clear_queue_by_message_id(self.original_msg.id)
+        except discord.errors.NotFound as ex:
+            print(f"[on_timeout] Mensagem não existe mais {ex}")
+            return
 
     def _handler_accept_bet(self,**kwargs) -> tuple: 
         """ 
@@ -245,181 +255,12 @@ class Channels(commands.Cog):
 
             msg = await ctx.send('criando fila ...')
             view = BtnsQueue()
-            view.timeout = 60
+            view.timeout = 10
             view.bot = self.bot
             view.original_msg = msg
             view.ctx = ctx
             await msg.edit(content='',embed=embed,view=view)
 
-    async def _btn_interaction(self,ctx, msg, btn_accept, btn_reject, embed):
-        """ cuida da interação com o botao de aceito """
-        while True:
-            try:
-                interaction_accept_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_accept" or inter.custom_id == "btn_reject",timeout=60)
-
-                user_id = interaction_accept_btn.user.id
-                message_id = interaction_accept_btn.message.id
-
-                print(f"[clique {interaction_accept_btn.user.name} - {interaction_accept_btn.user.id}] [message.id {message_id}]")               
-
-                if "sair" in interaction_accept_btn.component.label.lower():
-                    is_reject, total = self._reject_bet(message_id=message_id,user_id=user_id)
-                    if is_reject:
-                        btn_accept.set_disabled(False)  # força disable False 
-                        btn_accept.set_label(f"Entrar na fila [{total}/{_LIMIT_USER_IN_BET}]")
-                        
-                        await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
-                        index_to_remove = None
-                        for index,x in enumerate(embed.fields):
-                            if x.value == interaction_accept_btn.user.name:
-                                index_to_remove=index
-                                break
-                        
-                        if index_to_remove:
-                            embed.remove_field(index=4)
-                            await msg.edit(embed=embed)
-
-                    else:
-                        await interaction_accept_btn.respond(type = 7)
-                else:
-                    is_accepted, total = self._accept_bet(message_id=message_id,user_id=user_id)
-                    if is_accepted:
-
-                        embed.add_field(name="Participante:", value=interaction_accept_btn.user.mention, inline=True)
-                        await msg.edit(embed=embed)
-                        if total < 2:
-                            btn_accept.set_disabled(False)
-                        else:
-                            btn_accept.set_disabled(True)
-
-                            # aqui criar um canal
-                            guild = ctx.guild
-                            user_1 = None
-                            user_2 = None
-
-                            # pega dados dos usuarios que estavam na fila
-                            users = [users['users_id'] for users in _USERS_ACCEPT_INTERCTION if users['message_id'] == interaction_accept_btn.message.id ]
-                            user_id_1, user_id_2 = tuple(users[0])
-
-                            user_1 = ctx.guild.get_member(user_id_1)
-                            user_2 = ctx.guild.get_member(user_id_2)
-                        
-                            channel_bet_name = f"aposta-{user_1.name}-x-{user_2.name}".lower()
-                            overwrites = {
-                                guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                                guild.me: discord.PermissionOverwrite(read_messages=True),
-                                ctx.author: discord.PermissionOverwrite(read_messages=True),
-                                user_1: discord.PermissionOverwrite(read_messages=True),
-                                user_2: discord.PermissionOverwrite(read_messages=True)
-                            }                    
-                            channel = await guild.create_text_channel(channel_bet_name, overwrites=overwrites)
-                            await channel.send(embed=utils.embed_rules_message(ctx,self.bot))
-                            btn_remove_channel =  Button(label = "Remover canal", custom_id = "btn_remove_channel", style=4, emoji="❎")
-                            # await channel.send(components=[btn_remove_channel])
-
-                            _clear_queue_by_message_id(msg.id)
-
-                            await msg.delete()        
-                            # await self._btn_close_channel_interaction(btn_remove_channel)
-
-                            break
-
-                        btn_accept.set_label(f"Entrar na fila [{total}/{_LIMIT_USER_IN_BET}]")
-                        await interaction_accept_btn.respond(type=7, components = [[btn_accept, btn_reject]])
-                        
-                    else:
-                        await interaction_accept_btn.respond(type=7)
-
-            except TimeoutError as e:
-                print(f"TimeoutError {e}")
-                _clear_queue_by_message_id(msg.id)
-                
-                await msg.delete()
-                await ctx.send(f"Aposta cancelada por falta de jogadores ...")
-
-            except HTTPException as e:
-                print(f"HTTPException {e}")
-
-            except Exception as e:
-                print(f"sem mensagem {e}")
-                break
-    
-    def _accept_bet(self,**kwargs):     
-        message_id = int(kwargs.get("message_id"))        
-        user_id = int(kwargs.get("user_id"))
-
-        # verifica se o usuario ja esta em alguma interação
-        if not _USERS_ACCEPT_INTERCTION:
-            interaction = {
-                "message_id": message_id,
-                "users_id":[user_id],
-                "total":1
-            }
-            _USERS_ACCEPT_INTERCTION.append(interaction)
-
-            return True,1,
-
-        for inter in _USERS_ACCEPT_INTERCTION:
-            if user_id in  inter["users_id"]:
-                return False,inter['total'],
-        
-        interaction_exists = False
-        total_users = 0
-
-        # verifica se ja existe a interação e se existir adiciona o usuario nela, se nao cria e adiciona usuario
-        for inter in _USERS_ACCEPT_INTERCTION:
-            if int(inter["message_id"]) == message_id:
-                total_users = len(inter["users_id"])
-                if total_users >= _LIMIT_USER_IN_BET:
-                    return False, total_users,
-                    
-                inter["users_id"].append(user_id)
-                total_users = len(inter["users_id"])
-                inter["total"] = total_users
-                interaction_exists = True
-                break
-        
-        if not interaction_exists:
-            total_users = 1
-            interaction = {
-                "message_id": message_id,
-                "users_id":[user_id],
-                "total":total_users
-            }
-            _USERS_ACCEPT_INTERCTION.append(interaction)
-
-        return True,total_users,
-
-    def _reject_bet(self,**kwargs): 
-
-        message_id = int(kwargs.get("message_id"))        
-        user_id = int(kwargs.get("user_id"))
-
-        # verifica se existe alguma interação
-        if not _USERS_ACCEPT_INTERCTION:
-            return False, 0,
-
-        # verifica se existe mensagem com o id da interação e se o usuario que esta clicando esta nela
-        for inter in _USERS_ACCEPT_INTERCTION:
-            if int(inter["message_id"]) == message_id and user_id in inter["users_id"]:
-                index = inter["users_id"].index(user_id)
-                inter["users_id"].pop(index)
-                total_users = len(inter["users_id"])
-                return True, total_users,
-
-        return False, 0,
-    
-    async def _btn_close_channel_interaction(self,btn):
-        while True:
-            interaction_btn = await self.bot.wait_for("button_click", check = lambda inter: inter.custom_id == "btn_remove_channel" ,timeout=60)
-
-            if utils.check_comando_role_permission(interaction_btn):
-                await interaction_btn.respond(type=7)
-                await interaction_btn.channel.delete()
-                break
-            else:
-                await interaction_btn.channel.send(f"{interaction_btn.author.name}, você não tem permissão para fechar o canal!")
-                await interaction_btn.respond(type=7)
     
 def setup(bot):
     bot.add_cog(Channels(bot))
