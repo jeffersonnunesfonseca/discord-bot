@@ -32,6 +32,8 @@ class BtnClosePrivateChannel(discord.ui.View):
 
 class BtnsQueue(discord.ui.View):
 
+    original_msg = None
+    ctx = None
     bot = None
 
     @discord.ui.button(label=f"Entrar na fila [0/{_LIMIT_USER_IN_BET}]",custom_id='btn_accept',style=discord.ButtonStyle.primary)
@@ -68,6 +70,7 @@ class BtnsQueue(discord.ui.View):
 
         await interaction.response.edit_message(embed=embed, view=self)
 
+
     @discord.ui.button(label="Sair da fila",custom_id='btn_reject',style=discord.ButtonStyle.red)
     async def BtnRejectBet(self, button: discord.ui.Button, interaction: discord.Interaction):
         author = interaction.message.author
@@ -88,29 +91,16 @@ class BtnsQueue(discord.ui.View):
         print("##############################################")
 
         if is_reject:
-            try:
-                self.BtnAcceptBet.disabled = False
-                self.BtnAcceptBet.label=f"Entrar na fila [{total}/{_LIMIT_USER_IN_BET}]"
-                embed = self._handler_message_embed(button.custom_id,interaction)
+            self.BtnAcceptBet.disabled = False
+            self.BtnAcceptBet.label=f"Entrar na fila [{total}/{_LIMIT_USER_IN_BET}]"
+            embed = self._handler_message_embed(button.custom_id,interaction)
 
-                # interaction.message.components[0].children[0].label='sasa'
-                # btn_accept.set_disabled(False)  # força disable False 
-                # btn_accept.set_label(f"Entrar na fila [{total}/{_LIMIT_USER_IN_BET}]")
-                
-                # await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
-                # index_to_remove = None
-                # for index,x in enumerate(embed.fields):
-                #     if x.value == interaction_accept_btn.user.name:
-                #         index_to_remove=index
-                #         break
-                
-                # if index_to_remove:
-                #     embed.remove_field(index=4)
-                #     await msg.edit(embed=embed)
-            except Exception as e:
-                print(e)
-                import ipdb; ipdb.set_trace()
         await interaction.response.edit_message(embed=embed, view=self)
+
+    async def on_timeout(self):
+        _clear_queue_by_message_id(self.original_msg.id)
+        await self.original_msg.delete()
+        await self.ctx.send(f"Aposta cancelada por falta de jogadores ...")
 
     def _handler_accept_bet(self,**kwargs) -> tuple: 
         """ 
@@ -233,7 +223,6 @@ class Channels(commands.Cog):
     @commands.command(name="fila", help="Cria uma fila. Args: tipo(emu, mob),tamanho(4x4,1x1..), valor")
     async def create_queue(self, ctx,type,size,price):
         if not utils.check_comando_role_permission(ctx.guild.owner_id,ctx.author.id,ctx.author.roles):
-            await ctx.message.delete()
             await ctx.send(f"{ctx.author.name}, você não tem permissão!")
             return
         else:
@@ -254,11 +243,13 @@ class Channels(commands.Cog):
                 text="Feito por " + self.bot.user.name, icon_url=self.bot.user.avatar.url
             )
 
+            msg = await ctx.send('criando fila ...')
             view = BtnsQueue()
+            view.timeout = 60
             view.bot = self.bot
-
-            await ctx.send(embed=embed,view=view)
-            
+            view.original_msg = msg
+            view.ctx = ctx
+            await msg.edit(content='',embed=embed,view=view)
 
     async def _btn_interaction(self,ctx, msg, btn_accept, btn_reject, embed):
         """ cuida da interação com o botao de aceito """
