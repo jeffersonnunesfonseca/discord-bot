@@ -36,14 +36,13 @@ class BtnsQueue(discord.ui.View):
 
     @discord.ui.button(label=f"Entrar na fila [0/{_LIMIT_USER_IN_BET}]",custom_id='btn_accept',style=discord.ButtonStyle.primary)
     async def BtnAcceptBet(self, button: discord.ui.Button, interaction: discord.Interaction):
-        # import ipdb; ipdb.set_trace()
         author = interaction.message.author
         guild = interaction.guild
         user_id = interaction.user.id
         message_id = interaction.message.id
         is_accepted, total = self._handler_accept_bet(message_id=message_id,user_id=user_id)
 
-        print("##############################################")
+        print("#################### CLICK BTN ACCEPT ##########################")
         print(f"author {author}")
         print(f"user_id {user_id}")
         print(f"message_id {message_id}")
@@ -71,14 +70,47 @@ class BtnsQueue(discord.ui.View):
 
     @discord.ui.button(label="Sair da fila",custom_id='btn_reject',style=discord.ButtonStyle.red)
     async def BtnRejectBet(self, button: discord.ui.Button, interaction: discord.Interaction):
-        number = int(button.label) if button.label else 0
-        if number >= 4:
-            button.style = discord.ButtonStyle.green
-            button.disabled = True
-        button.label = str(number + 1)
+        author = interaction.message.author
+        guild = interaction.guild
+        user_id = interaction.user.id
+        message_id = interaction.message.id
+        
 
-        # Make sure to update the message with our updated selves
-        await interaction.response.edit_message(view=self)
+        is_reject, total = self._handler_reject_bet(message_id=message_id,user_id=user_id)
+        embed = interaction.message.embeds[0]
+
+        print("#################### CLICK BTN REJECT ##########################")
+        print(f"author {author}")
+        print(f"user_id {user_id}")
+        print(f"message_id {message_id}")
+        print(f"total na fila {total}")
+        print(f"users na fila {_USERS_ACCEPT_INTERCTION}")
+        print("##############################################")
+
+        if is_reject:
+            try:
+                self.BtnAcceptBet.disabled = False
+                self.BtnAcceptBet.label=f"Entrar na fila [{total}/{_LIMIT_USER_IN_BET}]"
+                embed = self._handler_message_embed(button.custom_id,interaction)
+
+                # interaction.message.components[0].children[0].label='sasa'
+                # btn_accept.set_disabled(False)  # força disable False 
+                # btn_accept.set_label(f"Entrar na fila [{total}/{_LIMIT_USER_IN_BET}]")
+                
+                # await interaction_accept_btn.respond(type = 7, components = [[btn_accept, btn_reject]])
+                # index_to_remove = None
+                # for index,x in enumerate(embed.fields):
+                #     if x.value == interaction_accept_btn.user.name:
+                #         index_to_remove=index
+                #         break
+                
+                # if index_to_remove:
+                #     embed.remove_field(index=4)
+                #     await msg.edit(embed=embed)
+            except Exception as e:
+                print(e)
+                import ipdb; ipdb.set_trace()
+        await interaction.response.edit_message(embed=embed, view=self)
 
     def _handler_accept_bet(self,**kwargs) -> tuple: 
         """ 
@@ -143,7 +175,8 @@ class BtnsQueue(discord.ui.View):
         if btn_type == 'btn_accept':
             embed.add_field(name="Participante:", value=interaction.user.mention, inline=True)
         elif btn_type == 'btn_reject':
-            pass
+            index_to_remove = [index for index,x in enumerate(embed.fields) if x.value == interaction.user.mention][0]
+            embed.remove_field(index=index_to_remove)
 
         return embed
 
@@ -163,6 +196,30 @@ class BtnsQueue(discord.ui.View):
         }                    
 
         return (overwrites,channel_bet_name,)
+
+    def _handler_reject_bet(self,**kwargs) -> tuple:
+        """ 
+        verifica se o usuario que fez a interação está reservado em alguma fila e o remove
+        kwargs: message_id e user_id
+        o retorno é uma tuple onde o primero valor é bool (se econtrou ou nao), e o segundo é a int de user na fila atualizado
+        """
+        message_id = int(kwargs.get("message_id"))        
+        user_id = int(kwargs.get("user_id"))
+
+        # verifica se existe alguma interação
+        if not _USERS_ACCEPT_INTERCTION:
+            return (False, 0,)
+
+        # verifica se existe mensagem com o id da interação e se o usuario que esta clicando esta nela
+        for inter in _USERS_ACCEPT_INTERCTION:
+            if int(inter["message_id"]) == message_id and user_id in inter["users_id"]:
+                # retorar a chave com base no valor encontrado no array
+                index = inter["users_id"].index(user_id)
+                inter["users_id"].pop(index)
+                total_users = len(inter["users_id"])
+                return (True, total_users,)
+
+        return (False, 0,)
 
 class Channels(commands.Cog):
     """Talks with user"""
