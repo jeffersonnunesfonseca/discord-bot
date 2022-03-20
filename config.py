@@ -57,7 +57,7 @@ CATEGORIES_WITH_CHANNELS = {
         {'name':'sistema-de-apostas','type':0,'permission':'readonly'},
         {'name':'regras','type':0,'permission':'readonly'},
     ],
-    'Apostas emulador':[
+    '🖥️Apostas emulador🖥️':[
         {'name':'x4-emulador-3','type':0,'permission':'all'},
         {'name':'x4-emulador-5','type':0,'permission':'all'},
         {'name':'x4-emulador-10','type':0,'permission':'all'},
@@ -73,7 +73,7 @@ CATEGORIES_WITH_CHANNELS = {
         {'name':'apostas-emu-acima-de-10','type':0,'permission':'all'},
 
     ],
-    'Apostas mobile':[
+    '📳Apostas mobile📳':[
         {'name':'x4-mob-3','type':0,'permission':'all'},
         {'name':'x4-mob-5','type':0,'permission':'all'},
         {'name':'x4-mob-10','type':0,'permission':'all'},
@@ -88,7 +88,7 @@ CATEGORIES_WITH_CHANNELS = {
         {'name':'x1-mob-10','type':0,'permission':'all'},
         {'name':'apostas-mob-acima-de-10','type':0,'permission':'all'},
     ],
-    'Apostas mistas':[
+    '🖥️📳Apostas mistas📳🖥️':[
         {'name':'x4-misto-5','type':0,'permission':'all'},
         {'name':'x4-misto-3','type':0,'permission':'all'},
         {'name':'x4-misto-10','type':0,'permission':'all'},
@@ -104,7 +104,7 @@ CATEGORIES_WITH_CHANNELS = {
         {'name':'apostas-misto-acima-de-10','type':0,'permission':'all'},
     ],
 
-    'Analises de xit':[
+    '🧐Analises de xit🧐':[
         {'name':'ANALISE 1','type':2,'user_limit':5,'permission':'all'},
         {'name':'ANALISE 2','type':2,'user_limit':5,'permission':'all'},
         {'name':'ANALISE 3','type':2,'user_limit':5,'permission':'all'},
