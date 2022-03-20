@@ -40,9 +40,12 @@ class Manager(commands.Cog):
         
         # força apagar mensagens de comando apos 2 minutos para evitar spam
         try:
-            reaction, user = await self.bot.wait_for('on_application_command', timeout=10)
+            reaction, user = await self.bot.wait_for('on_application_command', timeout=120)
         except asyncio.TimeoutError:
-            await message.delete()
+            commands = list(self.bot.all_commands.keys())
+            edited_commands = [f"!{res}" for res in commands]
+            if message.content in edited_commands:
+                await message.delete()
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
