@@ -1,5 +1,7 @@
+import asyncio
 from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument
 from discord.ext import commands
+
 # from discord_components import *
 
 class Manager(commands.Cog):
@@ -16,7 +18,6 @@ class Manager(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        # DiscordComponents(self.bot)
         print(f"Bot {self.bot.user} ON")
 
     @commands.Cog.listener()
@@ -36,6 +37,12 @@ class Manager(commands.Cog):
             # await message.channel.send(f"que boca suja ein {message.author.name}")
             await message.delete()
             await message.channel.send(f"mensagem apagada ... ")
+        
+        # força apagar mensagens de comando apos 2 minutos para evitar spam
+        try:
+            reaction, user = await self.bot.wait_for('on_application_command', timeout=10)
+        except asyncio.TimeoutError:
+            await message.delete()
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
